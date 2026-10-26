@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// These are starter models for a NEW FCDex schema.
+// Do not point this schema at the live BallsDex/FCDex database until
+// its actual schema has been inspected and a compatibility plan approved.
+
+model Player {
+  id          String       @id @default(cuid())
+  discordId   String       @unique @map("discord_id")
+  balance     BigInt       @default(0)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  ownedClubs  OwnedClub[]
+
+  @@map("players")
+}
+
+model Club {
+  id           String      @id @default(cuid())
+  name         String
+  country      String?
+  rarity        String      @default("common")
+  imageUrl      String?     @map("image_url")
+  enabled       Boolean     @default(true)
+  tradeable     Boolean     @default(true)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  ownedClubs    OwnedClub[]
+
+  @@index([name])
+  @@index([enabled, rarity])
+  @@map("clubs")
+}
+
+model OwnedClub {
+  id          String    @id @default(cuid())
+  playerId    String    @map("player_id")
+  clubId      String    @map("club_id")
+  obtainedAt  DateTime  @default(now()) @map("obtained_at")
+  favorite    Boolean   @default(false)
+  tradeable   Boolean   @default(true)
+  lockedAt    DateTime? @map("locked_at")
+  deletedAt   DateTime? @map("deleted_at")
+  player      Player    @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  club        Club      @relation(fields: [clubId], references: [id], onDelete: Restrict)
+
+  @@index([playerId, deletedAt])
+  @@index([clubId])
+  @@map("owned_clubs")
+}
+
+model Trade {
+  id             String      @id @default(cuid())
+  status         TradeStatus @default(COMPLETED)
+  playerOneId    String      @map("player_one_id")
+  playerTwoId    String      @map("player_two_id")
+  playerOneCoins BigInt      @default(0) @map("player_one_coins")
+  playerTwoCoins BigInt      @default(0) @map("player_two_coins")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  @@index([playerOneId, createdAt])
+  @@index([playerTwoId, createdAt])
+  @@map("trades")
+}
+
+enum TradeStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
