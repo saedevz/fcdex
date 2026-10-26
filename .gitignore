@@ -9,3 +9,4 @@ coverage/
 prisma/*.db
 # Local FCDex configuration
 config.ts
+config.example.ts

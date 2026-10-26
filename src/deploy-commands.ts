@@ -1,17 +1,25 @@
+
 import { REST, Routes } from "discord.js";
-import { env } from "./config/env.js";
+import { config } from "./config/config.js";
 import { commands } from "./commands/index.js";
 
-const rest = new REST({ version: "10" }).setToken(env.DISCORD_TOKEN);
-const body = commands.map((command) => command.data.toJSON());
+const rest = new REST({ version: "10" }).setToken(config.discord.token);
 
-if (env.DEV_GUILD_ID) {
-  await rest.put(
-    Routes.applicationGuildCommands(env.DISCORD_CLIENT_ID, env.DEV_GUILD_ID),
-    { body },
-  );
-  console.log(`Registered ${body.length} guild command(s) for development.`);
-} else {
-  await rest.put(Routes.applicationCommands(env.DISCORD_CLIENT_ID), { body });
-  console.log(`Registered ${body.length} global command(s).`);
+const commandData = commands.map((command) => command.data.toJSON());
+
+async function deployCommands(): Promise<void> {
+  try {
+    console.log(`Deploying ${commandData.length} FCDex commands...`);
+
+    await rest.put(Routes.applicationCommands(config.discord.clientId), {
+      body: commandData,
+    });
+
+    console.log("✓ Global application commands deployed successfully.");
+  } catch (error) {
+    console.error("✗ Failed to deploy application commands:", error);
+    process.exitCode = 1;
+  }
 }
+
+await deployCommands();
