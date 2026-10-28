@@ -1,34 +1,39 @@
 {
   "name": "fcdex-core",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "FCDex Discord bot core",
   "type": "module",
+  "description": "FCDex Discord bot core",
+  "engines": {
+    "bun": ">=1.4.0"
+  },
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "bun --watch --smol src/index.ts",
+    "start": "bun --smol dist/index.js",
     "build": "bunx tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "lint": "eslint .",
-    "format": "prettier --write .",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "setup": "bun src/config/setup.ts",
+    "deploy": "bun src/deploy-commands.ts",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "setup": "bun scripts/setup.ts"
+    "db:push": "bun src/db/import/index.ts prisma/schema.sql",
+    "db:import": "bun src/db/import/index.ts",
+    "check": "bun run lint && bun run build"
   },
   "dependencies": {
-    "@prisma/client": "^6.16.2",
-    "discord.js": "^14.22.1",
-    "dotenv": "^16.6.1",
-    "zod": "^4.1.11"
+    "@electric-sql/pglite": "0.5.12",
+    "@prisma/client": "7.10.1",
+    "discord.js": "14.27.0",
+    "prisma-pglite": "3.0.2"
   },
   "devDependencies": {
-    "@eslint/js": "^9.36.0",
-    "@types/node": "^24.7.2",
-    "eslint": "^9.36.0",
-    "prettier": "^3.6.2",
-    "prisma": "^6.16.2",
-    "tsx": "^4.20.5",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.44.1"
+    "@biomejs/biome": "2.6.3",
+    "@types/bun": "1.4.4",
+    "prisma": "7.10.1",
+    "typescript": "7.0.2"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2"
   }
 }

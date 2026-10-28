@@ -1,76 +1,199 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "postgres"
 }
-
-// These are starter models for a NEW FCDex schema.
-// Do not point this schema at the live BallsDex/FCDex database until
-// its actual schema has been inspected and a compatibility plan approved.
 
 model Player {
-  id          String       @id @default(cuid())
-  discordId   String       @unique @map("discord_id")
-  balance     BigInt       @default(0)
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  ownedClubs  OwnedClub[]
+  id                   BigInt   @id @default(autoincrement())
+  discordId            BigInt   @unique @map("discord_id")
+  donationPolicy       Int      @default(0) @map("donation_policy")
+  privacyPolicy        Int      @default(0) @map("privacy_policy")
+  mentionPolicy        Int      @default(0) @map("mention_policy")
+  friendPolicy         Int      @default(0) @map("friend_policy")
+  extraData            Json     @default("{}") @map("extra_data")
+  tradeCooldownPolicy  Int      @default(0) @map("trade_cooldown_policy")
+  money                BigInt   @default(0)
 
-  @@map("players")
+  ballInstances BallInstance[]
+  tradeObjects  TradeObject[]
+  trades1       Trade[]        @relation("TradePlayer1")
+  trades2       Trade[]        @relation("TradePlayer2")
+
+  @@map("player")
 }
 
-model Club {
-  id           String      @id @default(cuid())
-  name         String
-  country      String?
-  rarity        String      @default("common")
-  imageUrl      String?     @map("image_url")
-  enabled       Boolean     @default(true)
-  tradeable     Boolean     @default(true)
-  createdAt     DateTime    @default(now()) @map("created_at")
-  ownedClubs    OwnedClub[]
+model Ball {
+  id                   BigInt   @id @default(autoincrement())
+  country              String   @unique @map("country")
+  health               Int
+  attack               Int
+  rarity               Float
+  emojiId              BigInt   @map("emoji_id")
+  wildCard             String   @map("wild_card")
+  collectionCard       String   @map("collection_card")
+  credits              String
+  capacityName         String   @map("capacity_name")
+  capacityDescription  String   @map("capacity_description")
+  capacityLogic        Json     @map("capacity_logic")
+  enabled              Boolean  @default(true)
+  shortName            String?  @map("short_name")
+  catchNames           String?  @map("catch_names")
+  tradeable            Boolean  @default(true)
+  createdAt            DateTime? @map("created_at")
+  translations         String?
+  economyId            BigInt?  @map("economy_id")
+  regimeId             BigInt?  @map("regime_id")
 
-  @@index([name])
+  ballInstances BallInstance[]
+
   @@index([enabled, rarity])
-  @@map("clubs")
+  @@map("ball")
 }
 
-model OwnedClub {
-  id          String    @id @default(cuid())
-  playerId    String    @map("player_id")
-  clubId      String    @map("club_id")
-  obtainedAt  DateTime  @default(now()) @map("obtained_at")
-  favorite    Boolean   @default(false)
+model Special {
+  id          BigInt    @id @default(autoincrement())
+  name        String    @unique
+  catchPhrase String?   @map("catch_phrase")
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  rarity      Float
+  emoji       String?
+  background  String?
   tradeable   Boolean   @default(true)
-  lockedAt    DateTime? @map("locked_at")
-  deletedAt   DateTime? @map("deleted_at")
-  player      Player    @relation(fields: [playerId], references: [id], onDelete: Restrict)
-  club        Club      @relation(fields: [clubId], references: [id], onDelete: Restrict)
+  hidden      Boolean   @default(false)
+  credits     String?
 
-  @@index([playerId, deletedAt])
-  @@index([clubId])
-  @@map("owned_clubs")
+  ballInstances BallInstance[]
+
+  @@map("special")
+}
+
+model BallInstance {
+  id            BigInt    @id @default(autoincrement())
+  catchDate     DateTime  @map("catch_date")
+  healthBonus   Int       @default(0) @map("health_bonus")
+  attackBonus   Int       @default(0) @map("attack_bonus")
+  favorite      Boolean   @default(false)
+  serverId      BigInt?   @map("server_id")
+  tradeable     Boolean   @default(true)
+  extraData     Json      @default("{}") @map("extra_data")
+  locked        DateTime?
+  spawnedTime   DateTime? @map("spawned_time")
+  ballId        BigInt    @map("ball_id")
+  playerId      BigInt    @map("player_id")
+  tradePlayerId BigInt?   @map("trade_player_id")
+  specialId     BigInt?   @map("special_id")
+  deleted       Boolean   @default(false)
+
+  ball    Ball     @relation(fields: [ballId], references: [id], onDelete: Restrict)
+  player  Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  special Special? @relation(fields: [specialId], references: [id], onDelete: SetNull)
+  tradeObjects TradeObject[]
+
+  @@index([playerId, favorite])
+  @@index([ballId])
+  @@map("ballinstance")
 }
 
 model Trade {
-  id             String      @id @default(cuid())
-  status         TradeStatus @default(COMPLETED)
-  playerOneId    String      @map("player_one_id")
-  playerTwoId    String      @map("player_two_id")
-  playerOneCoins BigInt      @default(0) @map("player_one_coins")
-  playerTwoCoins BigInt      @default(0) @map("player_two_coins")
-  createdAt      DateTime    @default(now()) @map("created_at")
+  id           BigInt    @id @default(autoincrement())
+  date         DateTime  @default(now())
+  player1Id    BigInt    @map("player1_id")
+  player2Id    BigInt    @map("player2_id")
+  player1Money BigInt    @default(0) @map("player1_money")
+  player2Money BigInt    @default(0) @map("player2_money")
+  status       String?
+  expiresAt    DateTime? @map("expires_at")
+  resolvedAt   DateTime? @map("resolved_at")
 
-  @@index([playerOneId, createdAt])
-  @@index([playerTwoId, createdAt])
-  @@map("trades")
+  player1 Player @relation("TradePlayer1", fields: [player1Id], references: [id], onDelete: Cascade)
+  player2 Player @relation("TradePlayer2", fields: [player2Id], references: [id], onDelete: Cascade)
+  objects TradeObject[]
+
+  @@map("trade")
 }
 
-enum TradeStatus {
-  PENDING
-  COMPLETED
-  CANCELLED
+model TradeObject {
+  id            BigInt @id @default(autoincrement())
+  ballInstanceId BigInt @map("ballinstance_id")
+  playerId      BigInt @map("player_id")
+  tradeId       BigInt @map("trade_id")
+
+  ballInstance BallInstance @relation(fields: [ballInstanceId], references: [id], onDelete: Cascade)
+  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  trade        Trade        @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  @@index([tradeId])
+  @@map("tradeobject")
+}
+
+model GuildConfig {
+  id                  BigInt   @id @default(autoincrement())
+  guildId             BigInt   @unique @map("guild_id")
+  spawnChannel        BigInt?  @map("spawn_channel")
+  enabled             Boolean  @default(true)
+  silent              Boolean  @default(false)
+  adminCommandSynced  Boolean  @default(false) @map("admin_command_synced")
+  manualDropEnabled   Boolean  @default(true) @map("manual_drop_enabled")
+  tipsEnabled         Boolean  @default(true) @map("tips_enabled")
+
+  @@map("guildconfig")
+}
+
+model BlacklistedGuild {
+  id          BigInt    @id @default(autoincrement())
+  discordId   BigInt    @unique @map("discord_id")
+  reason      String?
+  date        DateTime?
+  moderatorId BigInt?   @map("moderator_id")
+
+  @@map("blacklistedguild")
+}
+
+model SpawnWave {
+  id            BigInt    @id @default(autoincrement())
+  guildId       BigInt    @map("guild_id")
+  waveKey       String    @unique @map("wave_key")
+  rarityFloor   Float     @map("rarity_floor")
+  rarityCeiling Float     @map("rarity_ceiling")
+  size          Int
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  endedAt       DateTime? @map("ended_at")
+
+  entries SpawnWaveEntry[]
+
+  @@index([guildId, createdAt])
+  @@map("spawnwave")
+}
+
+model SpawnWaveEntry {
+  id         BigInt   @id @default(autoincrement())
+  waveId     BigInt   @map("wave_id")
+  ballId     BigInt   @map("ball_id")
+  specialId  BigInt?  @map("special_id")
+  spawnKey   String?  @map("spawn_key")
+  instanceId BigInt?  @map("instance_id")
+  reward     BigInt   @default(0)
+  caught     Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  wave SpawnWave @relation(fields: [waveId], references: [id], onDelete: Cascade)
+
+  @@index([waveId])
+  @@map("spawnwaveentry")
+}
+
+model BlacklistedId {
+  id          BigInt    @id @default(autoincrement())
+  discordId   BigInt    @unique @map("discord_id")
+  reason      String?
+  date        DateTime?
+  moderatorId BigInt?   @map("moderator_id")
+
+  @@map("blacklistedid")
 }

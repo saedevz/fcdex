@@ -1,21 +1,21 @@
-
-import { PrismaClient } from "@prisma/client";
-import { env } from "../config/env.js";
+import { createPgliteAdapter } from "prisma-pglite";
+import { PrismaClient } from "../generated/prisma/client.js";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
 };
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    datasourceUrl: env.DATABASE_URL,
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["warn", "error"]
-        : ["error"],
+let instance = globalForPrisma.prisma;
+
+if (!instance) {
+  instance = new PrismaClient({
+    adapter: await createPgliteAdapter({
+      directDatabaseDirPath: process.env.FCD_PGLITE_DIR,
+    }),
+    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  globalForPrisma.prisma = instance;
 }
+
+export const prisma = instance;

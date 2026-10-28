@@ -1,12 +1,87 @@
+# Dependencies & build output
 node_modules/
 dist/
+coverage/
+
+# Environment & secrets
 .env
 .env.*
 !.env.example
-coverage/
-.DS_Store
-*.log
-prisma/*.db
+*.pem
+*.key
+*.p12
+*.pfx
+auth.json
+credentials*.json
+client_secret*.json
+*token*.json
+!package.json
+!bun.lock
+
+# Embedded PGlite database storage (imported production data)
+.not-committed/
+.pglite/
+pglite/
+pglite-data/
+
+# Dangerous database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.dump
+*.pgdump
+*.backup
+*.bak
+*.sql.gz
+ballsdex*.sql*
+*dump*.sql
+!prisma/schema.sql
+
+# Generated Prisma Client source
+src/generated/
+
 # Local FCDex configuration
 config.ts
 config.example.ts
+
+# Logs & editor noise
+*.log
+*.swp
+.gitignore.swp
+.DS_Store
+.vscode/
+.idea/
+
+# AI agents & assistants
+AGENTS.md
+GEMINI.md
+CLAUDE.md
+CLAUDE.local.md
+CODEX.md
+codex.md
+QWEN.md
+copilot-instructions.md
+opencode.jsonc
+skills-lock.json
+.agents/
+.claude/
+.cursor/
+.gemini/
+.opencode/
+.windsurf/
+.antigravity/
+.aider*
+.aider.conf.yml
+.continue/
+.codeium/
+.copilot/
+.tabnine/
+.sourcegraph/
+.junie/
+.serena/
+.specstory/
+.qwen/

@@ -1,4 +1,3 @@
-
 <div align="center">
 
 # ⚽ FCDex
@@ -30,16 +29,16 @@ Our goal is to create a flexible, modular, and community-driven football collect
 
 FCDex is built by a team passionate about football, Discord bots, and open-source development.
 
-| Member | Role |
-| --- | --- |
-| **Astro** | Project Lead & Lead Developer |
-| `Ariel Aram` | Core Developer |
-| `Alan` | Community and Bot Manager and Contributor |
-| `Hiboman` | Developer |
-| `Earthiopia` | Contributor |
-| `Giga` | Contributor |
-| `Bloxy` | Bot Hoster & Contributor |
-| `Zion` | Contributor |
+| Member       | Role                                      |
+| ------------ | ----------------------------------------- |
+| **Astro**    | Project Lead & Lead Developer             |
+| `Ariel Aram` | Core Developer                            |
+| `Alan`       | Community and Bot Manager and Contributor |
+| `Hiboman`    | Developer                                 |
+| `Earthiopia` | Contributor                               |
+| `Giga`       | Contributor                               |
+| `Bloxy`      | Bot Hoster & Contributor                  |
+| `Zion`       | Contributor                               |
 
 > Want to join the team? Visit our [Discord server](https://discord.com/servers/fcdex-1462526346533273775) and introduce yourself!
 
@@ -47,13 +46,13 @@ FCDex is built by a team passionate about football, Discord bots, and open-sourc
 ## ✨ Features
 
 - ⚽ **Club Collection** — collect football clubs and build your personal collection.
-- 🎯 **Catch System** — identify and catch clubs when they spawn.
-- 🏆 **Tier-Based Rarity** — discover clubs across tiers T1–T100.
+- 🎯 **Catch System** — identify and catch clubs when they spawn, in home, away and third kits.
+- 🏆 **Tier-Based Rarity** — discover clubs across weighted rarity tiers.
 - 📦 **Modular Packages** — enable or disable features through configuration.
-- 🛠️ **Admin Tools** — configurable administrative features.
-- 🔄 **Trading** — planned club trading system.
-- ⚔️ **Battles** — planned club battle system.
-- 🪙 **Economy** — planned economy features.
+- 🛠️ **Pitch Controls** — spawn channel pinning, toggles, force spawns and bans.
+- 🔄 **Trading** — escrowed transfer offers with fees and history.
+- ⚔️ **Matchdays & Duels** — AI friendlies and PvP club duels with coin stakes.
+- 🪙 **Economy** — daily wages, catch rewards and coin leaderboards.
 - 🌐 **Open Source** — contribute, report bugs, and help shape FCDex.
 
 > 🚧 FCDex is actively being developed. Some features are planned and are not yet available.
@@ -65,7 +64,28 @@ FCDex is built by a team passionate about football, Discord bots, and open-sourc
 - [Bun](https://bun.sh/)
 - [Node.js](https://nodejs.org/) for the current production start script
 - A [Discord application](https://discord.com/developers/applications)
-- A PostgreSQL database
+
+### Intents & permissions
+
+FCDex runs on **no privileged intents**. It enables only `Guilds` and `GuildMessages`; spawn detection never reads message content, so you can leave **Message Content**, **Server Members**, and **Server Presence** intents disabled in the Discord Developer Portal.
+
+Bot invite permissions are minimal: **View Channels** and **Send Messages**. Slash commands deploy globally and require no additional permissions. The only gated surface is `/pitch`, whose controls are limited to members with **Manage Server**.
+
+### BallsDex database compatibility
+
+FCDex is fully compatible with the BallsDex PostgreSQL schema and runs on embedded PGlite. Import any `pg_dump` backup produced by BallsDex or FCDex v3:
+
+```bash
+bun run db:import path/to/ballsdex_backup.sql
+```
+
+The importer sanitizes the dump, replays the DDL, converts every `COPY` block into batched inserts, applies foreign keys, adds FCDex additive columns (`trade.status`, `trade.expires_at`, `trade.resolved_at`) and syncs identity sequences. Clubs (`ball`), variants (`special`), collections (`ballinstance`), trades (`trade` + `tradeobject`), guild settings (`guildconfig`) and blacklists (`blacklistedid`) are read directly from the imported data.
+
+For a fresh, empty database without a backup, create the schema from `prisma/schema.sql`:
+
+```bash
+bun run db:push
+```
 
 ### Installation
 
@@ -121,10 +141,9 @@ You can configure settings such as:
 - Club collection settings
 - Catch messages and buttons
 - Tier-based rarity settings
-- Admin permissions
+- Economy, matchday, and transfer settings
+- Pitch (spawn channel) controls
 - Logging and appearance
-- Trading, battles, and economy
-- Optional monitoring integrations
 
 Keep credentials private. **Never commit your real tokens, secrets, or database credentials to GitHub.**
 
@@ -135,16 +154,16 @@ Your local configuration file should remain excluded from version control.
 
 Everything you need to install, configure, run, and contribute to FCDex.
 
-| Guide | Description |
-| --- | --- |
-| [🏠 Wiki Home](https://github.com/saedevz/fcdex/wiki) | Overview of the documentation |
-| [📦 Installation](https://github.com/saedevz/fcdex/wiki/Installation) | Clone the repository and install dependencies |
-| [⚙️ Configuration](https://github.com/saedevz/fcdex/wiki/Configuration) | Customize bot settings and enabled packages |
-| [🗄️ Database Setup](https://github.com/saedevz/fcdex/wiki/Database-Setup) | Configure PostgreSQL and Prisma |
-| [▶️ Running FCDex](https://github.com/saedevz/fcdex/wiki/Running-FCDex) | Start the bot and understand startup logs |
-| [🧩 Package System](https://github.com/saedevz/fcdex/wiki/Package-System) | Understand the modular package architecture |
-| [🛠️ Troubleshooting](https://github.com/saedevz/fcdex/wiki/Troubleshooting) | Diagnose common errors and startup problems |
-| [🤝 Contributing](https://github.com/saedevz/fcdex/wiki/Contributing) | Learn how to contribute to FCDex |
+| Guide                                                                       | Description                                   |
+| --------------------------------------------------------------------------- | --------------------------------------------- |
+| [🏠 Wiki Home](https://github.com/saedevz/fcdex/wiki)                       | Overview of the documentation                 |
+| [📦 Installation](https://github.com/saedevz/fcdex/wiki/Installation)       | Clone the repository and install dependencies |
+| [⚙️ Configuration](https://github.com/saedevz/fcdex/wiki/Configuration)     | Customize bot settings and enabled packages   |
+| [🗄️ Database Setup](https://github.com/saedevz/fcdex/wiki/Database-Setup)   | Configure PostgreSQL and Prisma               |
+| [▶️ Running FCDex](https://github.com/saedevz/fcdex/wiki/Running-FCDex)     | Start the bot and understand startup logs     |
+| [🧩 Package System](https://github.com/saedevz/fcdex/wiki/Package-System)   | Understand the modular package architecture   |
+| [🛠️ Troubleshooting](https://github.com/saedevz/fcdex/wiki/Troubleshooting) | Diagnose common errors and startup problems   |
+| [🤝 Contributing](https://github.com/saedevz/fcdex/wiki/Contributing)       | Learn how to contribute to FCDex              |
 
 ### Quick Links
 
@@ -161,18 +180,18 @@ Each package can contain its own commands, event handlers, and functionality. Th
 
 Planned packages include:
 
-| Package | Purpose |
-| --- | --- |
-| `clubs` | Club collection and catching |
-| `players` | Player-related features |
-| `trade` | Club trading |
-| `battle` | Club battles |
-| `economy` | Currency and economy |
-| `admin` | Administrative commands |
-| `specials` | Special collection features |
-| `guilds` | Server-specific settings |
-| `groups` | Collection groups |
-| `fcscript` | Custom scripting support |
+| Package    | Purpose                      |
+| ---------- | ---------------------------- |
+| `clubs`    | Club collection and catching |
+| `players`  | Player-related features      |
+| `trade`    | Club trading                 |
+| `battle`   | Club battles                 |
+| `economy`  | Currency and economy         |
+| `admin`    | Administrative commands      |
+| `specials` | Special collection features  |
+| `guilds`   | Server-specific settings     |
+| `groups`   | Collection groups            |
+| `fcscript` | Custom scripting support     |
 
 Packages will become available as their implementations are completed.
 

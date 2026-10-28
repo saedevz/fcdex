@@ -1,21 +1,20 @@
-
 import {
+  type AutocompleteInteraction,
   Client,
   Events,
   GatewayIntentBits,
-  MessageFlags,
   type InteractionReplyOptions,
+  MessageFlags,
 } from "discord.js";
 import { config } from "./config/config.js";
-import { commands } from "./commands/index.js";
+import { validateConfig } from "./config/validate.js";
 import { prisma } from "./db/prisma.js";
-import { loadPackages } from "./packages/loader.js";
-import { validateConfig } from "./config/validate.js";  
+import { type FCDexCommand, loadModules } from "./dugout/loader.js";
+import { fill, hasPermission, permissionFor } from "./dugout/pool.js";
 
 const startedAt = Date.now();
 
 let shuttingDown = false;
-let startupFailed = false;
 
 function log(stage: string, message: string): void {
   console.log(`[${stage.padEnd(10)}] ${message}`);
@@ -35,18 +34,23 @@ function printBanner(): void {
    ██║     ╚██████╗██████╔╝███████╗██╔╝ ██╗
    ╚═╝      ╚═════╝╚═════╝ ╚══════╝╚═╝  ╚═╝
 
-                 Created by the FCDex Team
-                      Version ${config.bot.version}
+                ${config.bot.description}
+                     Version ${config.bot.version}
 `);
 }
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
 });
 
-const commandMap = new Map(
-  commands.map((command) => [command.data.name, command]),
-);
+const commandMap = new Map<string, FCDexCommand>();
+
+function registerCommands(commands: FCDexCommand[]): void {
+  for (const command of commands) {
+    const json = command.data.toJSON();
+    commandMap.set(json.name, command);
+  }
+}
 
 client.once(Events.ClientReady, (readyClient) => {
   log("Discord", `✓ Logged in as ${readyClient.user.tag}`);
@@ -62,41 +66,84 @@ client.once(Events.ClientReady, (readyClient) => {
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+  if (interaction.isChatInputCommand()) {
+    const command = commandMap.get(interaction.commandName);
 
-  const command = commandMap.get(interaction.commandName);
+    if (!command) {
+      log("Commands", `Unknown command received: /${interaction.commandName}`);
+      return;
+    }
 
-  if (!command) {
-    log("Commands", `Unknown command received: /${interaction.commandName}`);
+    const sub = interaction.options.getSubcommand(false);
+    const path = sub
+      ? `${interaction.commandName}.${sub}`
+      : interaction.commandName;
+    const level = permissionFor(path);
+
+    const member =
+      interaction.inGuild() && interaction.guild
+        ? await interaction.guild.members
+            .fetch(interaction.user.id)
+            .catch(() => null)
+        : null;
+
+    const allowed = hasPermission(level, interaction.user.id, {
+      has: (permission: bigint) => member?.permissions.has(permission) ?? false,
+    });
+
+    if (!allowed) {
+      await interaction.reply({
+        content: fill(config.bot.noPermission, {
+          emoji: config.appearance.errorEmoji,
+        }),
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    try {
+      await command.execute(interaction);
+    } catch (error) {
+      logError("Commands", `/${interaction.commandName} failed`, error);
+
+      const payload: InteractionReplyOptions = {
+        content: fill(config.bot.commandError, {
+          emoji: config.appearance.errorEmoji,
+        }),
+        flags: MessageFlags.Ephemeral,
+      };
+
+      try {
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(payload);
+        } else {
+          await interaction.reply(payload);
+        }
+      } catch (replyError) {
+        logError(
+          "Commands",
+          `Could not send the error response for /${interaction.commandName}`,
+          replyError,
+        );
+      }
+    }
+
     return;
   }
 
-  try {
-    await command.execute(interaction);
-  } catch (error) {
-    logError(
-      "Commands",
-      `/${interaction.commandName} failed`,
-      error,
-    );
+  if (interaction.isAutocomplete()) {
+    const command = commandMap.get(interaction.commandName);
 
-    const payload: InteractionReplyOptions = {
-      content: `${config.appearance.errorEmoji} An error occurred while executing this command.`,
-      flags: MessageFlags.Ephemeral,
-    };
-
-    try {
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(payload);
-      } else {
-        await interaction.reply(payload);
+    if (command?.autocomplete) {
+      try {
+        await command.autocomplete(interaction as AutocompleteInteraction);
+      } catch (error) {
+        logError(
+          "Commands",
+          `autocomplete for /${interaction.commandName} failed`,
+          error,
+        );
       }
-    } catch (replyError) {
-      logError(
-        "Commands",
-        `Could not send the error response for /${interaction.commandName}`,
-        replyError,
-      );
     }
   }
 });
@@ -127,21 +174,20 @@ async function start(): Promise<void> {
   printBanner();
 
   log("Core", "Initializing FCDex...");
-  log("Config", "Validating configuration...");
-validateConfig();
-  log("Commands", `${commandMap.size} command(s) discovered.`);
+  validateConfig();
 
   try {
-    log("Database", "Connecting to PostgreSQL...");
+    log("Database", "Connecting to embedded PGlite database...");
     await prisma.$connect();
-    log("Database", "✓ PostgreSQL connection established.");
+    log("Database", "✓ PGlite connection established.");
 
-    await loadPackages(client, config);
+    const commands = await loadModules(client, config);
+
+    registerCommands(commands);
 
     log("Discord", "Connecting to Discord...");
     await client.login(config.discord.token);
   } catch (error) {
-    startupFailed = true;
     logError("Core", "Startup failed.", error);
 
     client.destroy();

@@ -1,18 +1,18 @@
-
 import { REST, Routes } from "discord.js";
 import { config } from "./config/config.js";
-import { commands } from "./commands/index.js";
+import { loadModuleCommands } from "./dugout/loader.js";
 
 const rest = new REST({ version: "10" }).setToken(config.discord.token);
 
-const commandData = commands.map((command) => command.data.toJSON());
-
 async function deployCommands(): Promise<void> {
   try {
-    console.log(`Deploying ${commandData.length} FCDex commands...`);
+    const commands = await loadModuleCommands(config);
+    const body = commands.map((command) => command.data.toJSON());
+
+    console.log(`Deploying ${body.length} FCDex commands...`);
 
     await rest.put(Routes.applicationCommands(config.discord.clientId), {
-      body: commandData,
+      body,
     });
 
     console.log("✓ Global application commands deployed successfully.");
