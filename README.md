@@ -4,229 +4,290 @@
 
 ### Football Club Dex for Discord
 
+**Current bot configuration version: `1.0.0`**
+
 Collect football clubs. Discover your favourites. Trade with friends. Build your collection.
 
 [![Discord](https://img.shields.io/badge/Join%20our%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/servers/fcdex-1462526346533273775)
 [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/saedevz/fcdex)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg?style=for-the-badge)](LICENSE)
 
-**[Join the Community](https://discord.com/servers/fcdex-1462526346533273775) · [Documentation](https://github.com/saedevz/fcdex/wiki) · [Report a Bug](https://github.com/saedevz/fcdex/issues)**
+**[Community](https://discord.com/servers/fcdex-1462526346533273775) · [Wiki](https://github.com/saedevz/fcdex/wiki) · [Report a bug](https://github.com/saedevz/fcdex/issues)**
 
 </div>
 
 ---
 
-## 🌟 About
+## About FCDex
 
-FCDex is an open-source Discord bot project inspired by collectible dex bots, reimagined around **football clubs**.
+FCDex is an open-source Discord bot built around collecting football clubs. Collectors can catch clubs, build a collection, earn coins, trade clubs, and take part in matchday activities.
 
-Build your collection, discover clubs, and eventually compete and trade with other collectors — all through Discord.
+The project is written in TypeScript and runs on [Bun](https://bun.sh/). Its data layer uses Prisma with an embedded [PGlite](https://pglite.dev/) database adapter.
 
-Our goal is to create a flexible, modular, and community-driven football collecting experience.
+## Features
 
+- **Club collection** — catch football clubs and build a personal collection.
+- **Spawn and catch system** — clubs appear in configured Discord channels and collectors compete to sign them.
+- **Rarity tiers** — clubs are selected and displayed using configured rarity weights and thresholds.
+- **Squad and collection tools** — inspect collection progress and individual club instances.
+- **Economy** — daily wages, catch rewards, balances, and leaderboards.
+- **Transfers** — offer clubs and coins to other collectors, inspect incoming offers, and view trade history.
+- **Matchday** — play friendlies and challenge other collectors to club duels.
+- **Pitch controls** — configure spawn channels, inspect pitch status, force drops, manage pitch bans, and inspect spawn waves.
+- **Guard** — apply the configured guild anti-farming checks.
+- **Modular dugout** — enable or disable feature modules through the local configuration.
 
-## 👥 Meet the Team
+The enabled modules in the generated starter configuration are `clubs`, `squad`, `transfers`, `matchday`, `pitch`, `guard`, and `info`.
 
-FCDex is built by a team passionate about football, Discord bots, and open-source development.
+## Admin panel
 
-| Member       | Role                                      |
-| ------------ | ----------------------------------------- |
-| **Astro**    | Project Lead & Lead Developer             |
-| `Ariel Aram` | Core Developer                            |
-| `Alan`       | Community and Bot Manager and Contributor |
-| `Hiboman`    | Developer                                 |
-| `Earthiopia` | Contributor                               |
-| `Giga`       | Contributor                               |
-| `Bloxy`      | Bot Hoster & Contributor                  |
-| `Zion`       | Contributor                               |
+FCDex includes a private web-based admin panel served by the existing Bun process. It reuses the bot's existing Prisma client and embedded PGlite database; it does not create a separate backend service or database connection.
 
-> Want to join the team? Visit our [Discord server](https://discord.com/servers/fcdex-1462526346533273775) and introduce yourself!
+### Admin panel sections
 
+| Section | What it does | Write access |
+| --- | --- | --- |
+| Overview | Shows live totals for clubs, players, club instances, specials, guilds, pending trades, and blacklist entries. | Read only |
+| Clubs | Search, create, edit, and delete club catalogue records. | Create / edit / delete |
+| Specials | Search, create, edit, and delete special editions and kit variants. | Create / edit / delete |
+| Players | Inspect a player, collection details, policy values, and trade count; add, subtract, or set coin balance. | Read / coin adjustment |
+| Guilds | Create, edit, and delete per-guild spawn configuration. | Create / edit / delete |
+| Trades | Inspect trade participants, status, coin amounts, expiry/resolution times, and trade objects. | Read only |
+| Blacklists | Add and remove blacklisted Discord users and guilds. | Add / remove |
+| Spawn waves | Inspect wave records, entries, catch outcomes, and rewards. | Read only |
+| Configuration | Review selected runtime settings, enabled modules, and rarity tiers. | Read only |
 
-## ✨ Features
+Trade acceptance/decline and spawn-wave annul/revert are intentionally not duplicated in the panel. Those operations remain in their existing Discord command workflows. The panel does not edit the local `src/config/config.ts` file.
 
-- ⚽ **Club Collection** — collect football clubs and build your personal collection.
-- 🎯 **Catch System** — identify and catch clubs when they spawn, in home, away and third kits.
-- 🏆 **Tier-Based Rarity** — discover clubs across weighted rarity tiers.
-- 📦 **Modular Packages** — enable or disable features through configuration.
-- 🛠️ **Pitch Controls** — spawn channel pinning, toggles, force spawns and bans.
-- 🔄 **Trading** — escrowed transfer offers with fees and history.
-- ⚔️ **Matchdays & Duels** — AI friendlies and PvP club duels with coin stakes.
-- 🪙 **Economy** — daily wages, catch rewards and coin leaderboards.
-- 🌐 **Open Source** — contribute, report bugs, and help shape FCDex.
+### Admin access requirements
 
-> 🚧 FCDex is actively being developed. Some features are planned and are not yet available.
+Admin access requires **both**:
 
-## 🚀 Getting Started
+1. The Discord account must be listed in `permissions.adminUserIds` in the generated local `src/config/config.ts`.
+2. The Discord OAuth2 application must be configured with the Client Secret and matching Redirect URI.
 
-### Requirements
+Being a Discord server owner or having the `Administrator` permission does not automatically grant access to the panel. The allowlist is controlled by the FCDex owner/operator.
 
-- [Bun](https://bun.sh/)
-- [Node.js](https://nodejs.org/) for the current production start script
-- A [Discord application](https://discord.com/developers/applications)
+The admin server binds to `127.0.0.1:3030` by default. Keep it local during development. For remote access, use HTTPS behind a properly configured reverse proxy and firewall; do not expose the Bun admin port directly to the public internet.
 
-### Intents & permissions
+See the [Admin Panel Wiki](https://github.com/saedevz/fcdex/wiki/Admin-Panel) for setup and permission details.
 
-FCDex runs on **no privileged intents**. It enables only `Guilds` and `GuildMessages`; spawn detection never reads message content, so you can leave **Message Content**, **Server Members**, and **Server Presence** intents disabled in the Discord Developer Portal.
+## Requirements
 
-Bot invite permissions are minimal: **View Channels** and **Send Messages**. Slash commands deploy globally and require no additional permissions. The only gated surface is `/pitch`, whose controls are limited to members with **Manage Server**.
+- [Bun](https://bun.sh/) **1.4.0 or newer** (see `package.json`).
+- A Discord application and bot token for running the Discord bot.
+- Access to the FCDex configuration and database for a full local instance.
 
-### BallsDex database compatibility
+A separate PostgreSQL server is not required by the current project setup. FCDex uses embedded PGlite through `prisma-pglite`.
 
-FCDex is fully compatible with the BallsDex PostgreSQL schema and runs on embedded PGlite. Import any `pg_dump` backup produced by BallsDex or FCDex v3:
+## Installation
 
-```bash
-bun run db:import path/to/ballsdex_backup.sql
-```
-
-The importer sanitizes the dump, replays the DDL, converts every `COPY` block into batched inserts, applies foreign keys, adds FCDex additive columns (`trade.status`, `trade.expires_at`, `trade.resolved_at`) and syncs identity sequences. Clubs (`ball`), variants (`special`), collections (`ballinstance`), trades (`trade` + `tradeobject`), guild settings (`guildconfig`) and blacklists (`blacklistedid`) are read directly from the imported data.
-
-For a fresh, empty database without a backup, create the schema from `prisma/schema.sql`:
-
-```bash
-bun run db:push
-```
-
-### Installation
-
-**1. Clone the repository**
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/saedevz/fcdex.git
 cd fcdex
 ```
 
-**2. Install dependencies**
+### 2. Install dependencies
 
 ```bash
 bun install
 ```
 
-**3. Generate your local configuration**
+### 3. Generate the local configuration
 
 ```bash
 bun run setup
 ```
 
-Open the generated `src/config/config.ts` and configure your Discord bot credentials and other settings.
+This creates `src/config/config.ts` if it does not already exist. Open that file and configure your bot token, application ID, modules, permissions, and other settings. The generated local config is intentionally ignored by Git.
 
-**4. Configure the database**
-
-Set up your PostgreSQL connection using the environment configuration expected by the Prisma client.
-
-Consult the [Database Setup Guide](https://github.com/saedevz/fcdex/wiki/Database-Setup) before proceeding.
-
-**5. Generate the Prisma client**
+### 4. Generate the Prisma client
 
 ```bash
 bun run db:generate
 ```
 
-**6. Start development**
+### 5. Prepare the database
+
+For a **new, empty local database**, create the schema from the SQL snapshot:
+
+```bash
+bun run db:push
+```
+
+To import a compatible BallsDex/FCDex SQL dump into the embedded PGlite database:
+
+```bash
+bun run db:import path/to/backup.sql
+```
+
+The PGlite data directory defaults to `.not-committed` in the project directory. Set `FCD_PGLITE_DIR` to use a different directory. Back up existing data before importing or changing database structure. Do not run setup/import commands against a live database unless you understand the effect and have an independent backup.
+
+### 6. Start FCDex
 
 ```bash
 bun run dev
 ```
 
-> ⚠️ Database migrations are intentionally not included in these quick-start commands. Review the Prisma schema and database setup documentation before applying migrations.
+The production build/check scripts are:
 
-## ⚙️ Configuration
+```bash
+bun run build
+bun run lint
+bun run check
+```
 
-FCDex uses a central TypeScript configuration file.
+`bun run check` runs the Biome checks and TypeScript build.
 
-You can configure settings such as:
+## Admin panel setup
 
-- Discord bot credentials
-- Enabled packages
-- Club collection settings
-- Catch messages and buttons
-- Tier-based rarity settings
-- Economy, matchday, and transfer settings
-- Pitch (spawn channel) controls
-- Logging and appearance
+The admin panel starts with the main FCDex process after Prisma connects. A valid bot token is still required for the complete FCDex process to remain online. The panel implementation is included in this project version; verify OAuth, database actions, and permissions against the target FCDex environment before production use.
 
-Keep credentials private. **Never commit your real tokens, secrets, or database credentials to GitHub.**
+### 1. Configure the admin allowlist
 
-Your local configuration file should remain excluded from version control.
+In `src/config/config.ts`, add the Discord user IDs authorized by the FCDex owner/operator:
 
+```ts
+permissions: {
+  adminUserIds: ["YOUR_DISCORD_USER_ID"],
+  // Keep the existing levels configuration.
+},
+```
 
-## 📚 Documentation
+Do not add users without authorization from the FCDex owner/operator.
 
-Everything you need to install, configure, run, and contribute to FCDex.
+### 2. Configure environment variables
 
-| Guide                                                                       | Description                                   |
-| --------------------------------------------------------------------------- | --------------------------------------------- |
-| [🏠 Wiki Home](https://github.com/saedevz/fcdex/wiki)                       | Overview of the documentation                 |
-| [📦 Installation](https://github.com/saedevz/fcdex/wiki/Installation)       | Clone the repository and install dependencies |
-| [⚙️ Configuration](https://github.com/saedevz/fcdex/wiki/Configuration)     | Customize bot settings and enabled packages   |
-| [🗄️ Database Setup](https://github.com/saedevz/fcdex/wiki/Database-Setup)   | Configure PostgreSQL and Prisma               |
-| [▶️ Running FCDex](https://github.com/saedevz/fcdex/wiki/Running-FCDex)     | Start the bot and understand startup logs     |
-| [🧩 Package System](https://github.com/saedevz/fcdex/wiki/Package-System)   | Understand the modular package architecture   |
-| [🛠️ Troubleshooting](https://github.com/saedevz/fcdex/wiki/Troubleshooting) | Diagnose common errors and startup problems   |
-| [🤝 Contributing](https://github.com/saedevz/fcdex/wiki/Contributing)       | Learn how to contribute to FCDex              |
+Copy `.env.example` to `.env` and set the values:
 
-### Quick Links
+```env
+FCDEX_ADMIN_CLIENT_SECRET=YOUR_DISCORD_APPLICATION_CLIENT_SECRET
+FCDEX_ADMIN_SESSION_SECRET=REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_CHARACTERS
+FCDEX_ADMIN_REDIRECT_URI=http://127.0.0.1:3030/admin/api/auth/callback
+FCDEX_ADMIN_HOST=127.0.0.1
+FCDEX_ADMIN_PORT=3030
+```
 
-- [Report a bug](https://github.com/saedevz/fcdex/issues)
-- [Browse the source code](https://github.com/saedevz/fcdex)
-- [Join the FCDex Discord](https://discord.com/servers/fcdex-1462526346533273775)
+`FCDEX_ADMIN_CLIENT_SECRET` is the Discord application's **OAuth2 Client Secret**. It is not the bot token. Keep `.env` private and never commit it.
 
+Generate a session secret locally, for example:
 
-## 🧩 Package System
+```bash
+openssl rand -hex 32
+```
 
-FCDex is designed around individual feature packages.
+### 3. Register the OAuth2 redirect URI
 
-Each package can contain its own commands, event handlers, and functionality. The package loader discovers package folders and loads enabled packages according to the central configuration.
+In the Discord Developer Portal, open the FCDex application → **OAuth2** → **Redirects** and add the exact URI from `FCDEX_ADMIN_REDIRECT_URI`.
 
-Planned packages include:
+For the default local configuration, use:
 
-| Package    | Purpose                      |
-| ---------- | ---------------------------- |
-| `clubs`    | Club collection and catching |
-| `players`  | Player-related features      |
-| `trade`    | Club trading                 |
-| `battle`   | Club battles                 |
-| `economy`  | Currency and economy         |
-| `admin`    | Administrative commands      |
-| `specials` | Special collection features  |
-| `guilds`   | Server-specific settings     |
-| `groups`   | Collection groups            |
-| `fcscript` | Custom scripting support     |
+```text
+http://127.0.0.1:3030/admin/api/auth/callback
+```
 
-Packages will become available as their implementations are completed.
+The redirect must match exactly, including protocol, hostname, port, and path.
 
-## 🤝 Contributing
+### 4. Start and open the panel
 
-Contributions, ideas, and bug reports are welcome!
+Start FCDex:
 
-1. Read the [Contributing Guide](https://github.com/saedevz/fcdex/wiki/Contributing).
-2. Check existing [issues](https://github.com/saedevz/fcdex/issues).
-3. Create a branch for your changes.
-4. Submit a pull request with a clear description.
+```bash
+bun run dev
+```
 
-Please avoid committing secrets, generated files, or unrelated changes.
+Open:
 
-## 💬 Community & Support
+```text
+http://127.0.0.1:3030/admin/
+```
 
-Need help, want to suggest a feature, or just want to follow development?
+If port `3030` is already in use, choose another local port in `.env` and update the OAuth redirect URI to match. For example:
 
-<div align="center">
+```env
+FCDEX_ADMIN_PORT=3031
+FCDEX_ADMIN_REDIRECT_URI=http://127.0.0.1:3031/admin/api/auth/callback
+```
 
-### Join the FCDex Community
+Then add that new callback URI to the Discord application's OAuth2 Redirects list.
 
-Discuss development, share ideas, and connect with other FCDex users.
+### Remote deployment
 
-[![Join FCDex Discord](https://img.shields.io/badge/💬%20Join%20the%20FCDex%20Discord-5865F2?style=for-the-badge)](https://discord.com/servers/fcdex-1462526346533273775)
+The default host is intentionally `127.0.0.1`. For a reverse-proxy deployment, configure `FCDEX_ADMIN_HOST=0.0.0.0`, set `FCDEX_ADMIN_PUBLIC_ORIGIN` to the public HTTPS origin, and use the matching HTTPS callback URL. Restrict access at the reverse proxy and firewall. Do not expose the Bun listener directly to the internet.
 
-[GitHub Issues](https://github.com/saedevz/fcdex/issues) · [GitHub Discussions](https://github.com/saedevz/fcdex/discussions)
+## Configuration
 
-</div>
+The generated `src/config/config.ts` controls the bot's Discord credentials, command permissions, enabled dugout modules, collection wording, appearance, spawning, rarity tiers, catch behavior, economy, transfers, matchday, pitch, guard, and wave settings.
 
-## 📄 License
+The admin panel's HTTP/OAuth settings are separate environment variables documented in `.env.example`:
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `FCDEX_ADMIN_CLIENT_SECRET` | Discord OAuth2 Client Secret | Required |
+| `FCDEX_ADMIN_SESSION_SECRET` | HMAC signing secret; at least 32 characters | Required |
+| `FCDEX_ADMIN_REDIRECT_URI` | Exact Discord OAuth callback URL | Required |
+| `FCDEX_ADMIN_HOST` | Admin HTTP bind host | `127.0.0.1` |
+| `FCDEX_ADMIN_PORT` | Admin HTTP port | `3030` |
+| `FCDEX_ADMIN_PUBLIC_ORIGIN` | Public HTTPS origin when behind a reverse proxy | Unset |
+| `FCD_PGLITE_DIR` | PGlite database directory | `.not-committed` |
+
+The admin panel's Configuration screen is read-only. Edit `src/config/config.ts` and restart FCDex to change bot-wide settings.
+
+## Database notes
+
+FCDex currently models the BallsDex-compatible tables through Prisma, including `Player`, `Ball`, `Special`, `BallInstance`, `Trade`, `TradeObject`, `GuildConfig`, `BlacklistedId`, `BlacklistedGuild`, `SpawnWave`, and `SpawnWaveEntry`.
+
+The SQL snapshot and Prisma schema currently disagree about `ball.regime_id`: `prisma/schema.sql` declares it `NOT NULL`, while `schema.prisma` marks `regimeId` optional. The admin club form requires a Regime ID to satisfy the SQL snapshot. Review this mismatch with the database owner before changing the schema.
+
+## Safety and operational notes
+
+- Never commit `.env`, `src/config/config.ts`, bot tokens, OAuth secrets, database files, or SQL backups.
+- The admin allowlist is an explicit Discord user-ID allowlist; server permissions do not replace it.
+- The admin session lasts eight hours. The OAuth state cookie lasts ten minutes.
+- Admin write requests are origin-checked and validated server-side.
+- Admin actions are written as structured `[AdminAction]` entries to the server log. The current schema does not include a persistent audit-log table.
+- Club deletion can fail while collection instances reference the club; the database relation restricts that deletion.
+- Player coin changes directly update the player's `money` balance. Back up the database and use these controls only with owner authorization.
+- Trade state changes and spawn-wave annul/revert are intentionally left to the existing Discord command workflows.
+- The admin panel's system/configuration page is read-only.
+
+## Documentation Wiki
+
+The Wiki contains installation, configuration, database, module, admin-panel, security, troubleshooting, and contribution guides:
+
+- [Wiki Home](https://github.com/saedevz/fcdex/wiki)
+- [Installation](https://github.com/saedevz/fcdex/wiki/Installation)
+- [Configuration](https://github.com/saedevz/fcdex/wiki/Configuration)
+- [Database Setup](https://github.com/saedevz/fcdex/wiki/Database-Setup)
+- [Running FCDex](https://github.com/saedevz/fcdex/wiki/Running-FCDex)
+- [Package System](https://github.com/saedevz/fcdex/wiki/Package-System)
+- [Admin Panel](https://github.com/saedevz/fcdex/wiki/Admin-Panel)
+- [Admin Authentication](https://github.com/saedevz/fcdex/wiki/Admin-Authentication)
+- [Admin Operations](https://github.com/saedevz/fcdex/wiki/Admin-Operations)
+- [Troubleshooting](https://github.com/saedevz/fcdex/wiki/Troubleshooting)
+- [Contributing](https://github.com/saedevz/fcdex/wiki/Contributing)
+
+## Contributing
+
+Issues, bug reports, documentation improvements, and pull requests are welcome. Before opening a pull request:
+
+1. Check existing issues and discussions.
+2. Keep changes focused and describe the behavior they affect.
+3. Run `bun run lint` and `bun run build` where possible.
+4. Do not include generated Prisma output, local configuration, credentials, database files, or backups.
+5. Include reproduction steps for bug fixes and screenshots for UI changes when useful.
+
+## Community and support
+
+- [FCDex Discord](https://discord.com/servers/fcdex-1462526346533273775)
+- [GitHub Issues](https://github.com/saedevz/fcdex/issues)
+- [GitHub Discussions](https://github.com/saedevz/fcdex/discussions)
+
+## License
 
 FCDex is licensed under the [MIT License](LICENSE).
-
----
 
 <div align="center">
 
