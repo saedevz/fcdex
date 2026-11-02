@@ -11,10 +11,12 @@ import { validateConfig } from "./config/validate.js";
 import { prisma } from "./db/prisma.js";
 import { type FCDexCommand, loadModules } from "./dugout/loader.js";
 import { fill, hasPermission, permissionFor } from "./dugout/pool.js";
+import { startAdminServer } from "./admin/server.js";
 
 const startedAt = Date.now();
 
 let shuttingDown = false;
+let adminServer: ReturnType<typeof Bun.serve> | undefined;
 
 function log(stage: string, message: string): void {
   console.log(`[${stage.padEnd(10)}] ${message}`);
@@ -155,6 +157,7 @@ async function shutdown(signal: string): Promise<void> {
   log("Core", `${signal} received; shutting down FCDex...`);
 
   client.destroy();
+  adminServer?.stop(true);
 
   try {
     await prisma.$disconnect();
@@ -181,6 +184,13 @@ async function start(): Promise<void> {
     await prisma.$connect();
     log("Database", "✓ PGlite connection established.");
 
+    try {
+      adminServer = startAdminServer();
+      log("Admin", `✓ Admin panel listening at http://${process.env.FCDEX_ADMIN_HOST ?? "127.0.0.1"}:${adminServer.port}/admin/`);
+    } catch (error) {
+      logError("Admin", "Admin panel could not start; the Discord bot will continue.", error);
+    }
+
     const commands = await loadModules(client, config);
 
     registerCommands(commands);
@@ -191,6 +201,7 @@ async function start(): Promise<void> {
     logError("Core", "Startup failed.", error);
 
     client.destroy();
+    adminServer?.stop(true);
 
     try {
       await prisma.$disconnect();
