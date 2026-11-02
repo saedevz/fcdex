@@ -364,6 +364,10 @@ export function blacklistGuildCache(guildId: string): void {
   guildBlacklistCache.add(guildId);
 }
 
+export function unblacklistGuildCache(guildId: string): void {
+  guildBlacklistCache.delete(guildId);
+}
+
 export type PermissionLevel = "everyone" | "manageGuild" | "administrator";
 
 export function permissionFor(commandPath: string): PermissionLevel {
